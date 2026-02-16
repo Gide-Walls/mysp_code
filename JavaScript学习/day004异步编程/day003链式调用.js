@@ -1,1 +1,0 @@
-Promise.resolve(5).then(x=>x*2).then(x=>x+9).then(x=>console.log("我不知道自己是谁"))
