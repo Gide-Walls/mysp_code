@@ -1,0 +1,107 @@
+1 爬虫
+    为什么要学习爬虫
+        采集数据
+            数据分析 人工智能 ai 训练模型 数据
+
+            获取数据
+                1 购买  去查查   要付费 爬虫
+                2 下载免费的数据 国家统计局  不全面
+                3 人工采集  效率低
+                4 爬虫 效率最高的
+        采集数据用途
+            建站 比如今日热榜 去赚钱 收集网站数据 赚管道钱
+            数据分析  淘宝  数据埋点   采集 
+            AI 3分一张图片(20年)
+        什么是爬虫
+            网络蜘蛛 网络机器人 自动抓取 互联网信息的程序
+                两种
+                    普通爬虫
+                        谷歌  浏览器 360
+                            不精准
+
+                    聚焦爬虫
+                        准确获取响应数据
+爬虫流程
+    1 目标网址 
+        url 网址(统一资源标签)
+            https://          www.baidu.com   /s     ?tn=baidu&wd=%E6%B1%BD%E8%BD%A6
+                协议 
+                协议规范 http  https 超文本传输协议 
+                http 的端口是80
+                https 的端口是443
+            www.baidu.com == https://39.156.70.37/   ipv4 172.30.144.1 电脑的标识  4组 255 2的32次方  40亿左右
+
+                域名                 ip地址
+
+                新的ipv6  可以记录更多的
+                www.baidu.com:80
+                www.baidu.com:443 默认不显示:后面的 找到服务器具体位置
+                    /s 资源部分  / 开始到?结束
+                    ?后面的 查询参数 里面的
+                        #是锚点
+                            如果输入的是中文会
+                                进行encodeURL()编码
+                                然后decodeURL()解码
+                    get 是获取请求
+                    post 也是        
+
+
+
+
+    2 发送网络请求(要通过代码实现)
+    3 筛选数据(过滤数据)
+    4 存储数据 (数据库)
+            开发者工具
+                元素
+                    渲染之后的画面
+                控制台
+                    python控制台
+                网络
+            http协议 
+                请求
+                    get 找服务器获取数据源
+                    post 提交数据给服务器   登录 注册
+                    put  修改数据 修改账号密码 
+                    delete 删除
+    请求头
+        User-Agent (浏览器名称)
+
+        Referer (页面跳转处)   防盗链
+
+        Accept-Encoding (文件编解码格式)
+
+        Cookie (Cookie)  账号信息
+
+        x-requested-with XMLHttpRequest (表示该请求是Ajax异步请求)  区分客户端类型
+
+
+    Host (主机和端口号)
+        Connection I (链接类型)
+        Upgrade-Insecure-Requests (升级为HTTPS请求)
+        User-Agent (浏览器名称)
+        Accept (传输文件类型)
+        Referer (页面跳转处)
+        Accept-Encoding (文件编解码格式)
+        Cookie (Cookie)
+        x-requested-with XMLHttpRequest (表示该请求是Ajax异步请求)
+    
+
+    post 请求体
+
+    响应 
+        状态码
+            100 200(响应成功) 300(重定向) 400(客户端请求失败) 500(服务器内部问题) 404(网页不存在)
+        响应头
+            set-Cookie
+        响应体
+            
+
+
+
+
+
+
+
+
+
+

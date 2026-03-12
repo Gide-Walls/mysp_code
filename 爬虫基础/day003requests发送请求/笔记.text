@@ -1,0 +1,133 @@
+http
+    请求
+    请求网址
+    请求头
+    请求体
+响应
+    状态码
+    响应头
+    响应头
+无状态协议
+    cookie
+    现实状态保持
+        1 会话
+            有始有终的的动作
+        2 cookie
+            网页用来辨别用户身份的 进行跟踪 并且储存浏览器(客户端)本地的数据
+            键对值得形式
+    缓存
+        存在浏览器本地
+队列 实现进程通信  不共享资源
+
+
+
+发送请求
+
+    进程通信
+        tcp udp 
+            udp 适合用在广播
+            tcp 三次握手 四次挥手
+    套接字 socket 创建两个软件的通信
+
+2.2 response.text 和 response.content 的区别
+
+    response.text
+
+        类型: str
+
+        解码类型: requests 模块自动根据 HTTP 头部对响应的编码作出有根据的推测，推测的文本编码
+
+        如何修改编码方式: response.encoding = "gbk"
+
+response.content
+
+    类型: bytes
+
+    解码类型: 没有指定
+
+        如何修改编码方式: response.content.decode("utf8")
+
+        获取网页源码的通用方式:
+
+            response.content.decode()
+
+            response.content.decode("GBK")
+
+            response.text
+
+编码
+    字符 
+        全世界的文字总和
+    字符集
+        对应各个国家的  中国的字符集大的很多(gpk)
+            美国 ascii 码
+
+    utf-8
+        把所有的字符集全部整合到一起
+            万国码
+    python 字符集
+        str
+            uniconde 计算机的编码
+        bytes
+            字节 二进制数据
+
+
+post 请求
+    表单数据
+        传递字典的形式
+        requests 传递字典的时候会转换成其他的
+    载荷数据
+        json格式
+        requests json
+
+        json=data 的时候   json.dumps()把Python的字典转换成json
+
+        json 格式
+免费代理IP http://ip.yqie.com/ipproxy.htm
+
+66免费代理网 http://www.66ip.cn/
+
+89免费代理 http://www.89ip.cn/
+
+无忧代理 http://www.data5u.com/
+
+云代理 http://www.ip3366.net/
+
+快代理 https://www.kuaidaili.com/free/
+
+极速专享代理 http://www.superfa.cn/
+
+HTTP代理IP https://www.xicidaili.com/wt/
+
+小舒代理 http://www.xsdaili.com
+
+小幻HTTP代理 http://www.feilongip.com/
+
+全网代理IP http://www.goubanjia.com/
+
+飞龙代理IP http://www.feilongip.com/
+
+西拉免费代理IP http://www.xiladaili.com/
+2.5 代理IP的分类
+
+根据代理IP的匿名程度，代理IP可以分为下面四类：
+
+    透明代理（Transparent Proxy）：透明代理虽然可以直接“隐藏”你的IP地址，但是还是可以查到你是谁。
+
+    匿名代理（Anonymous Proxy）：使用匿名代理，别人只能知道你用了代理，无法知道你是谁。
+
+    高匿代理（Elite proxy或High Anonymity Proxy）：高匿代理让别人根本无法发现你是在用代理，所以是最好的选择。
+
+在使用的使用，毫无疑问使用高匿代理效果最好。
+
+从请求使用的协议可以分为：
+
+    http代理
+
+    https代理
+
+    socket代理等
+
+        不同分类的代理，在使用的时候需要根据抓取网站的协议来选择。
+
+                

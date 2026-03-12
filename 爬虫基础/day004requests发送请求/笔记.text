@@ -1,0 +1,46 @@
+requests
+    响应头参数
+    携带请求头
+    携带的请求参数'
+    发送post参数
+    代理的使用
+cookie
+    存储在浏览器的  实现状态保持记录 
+    带cookie的好处
+        可以访问登录之后的页面
+
+        可以通过cookie判断用户
+
+        准备账号 公司会提供  平台购买账号 存到本地 搭建cookie池
+            cookie 会有过期时间
+                在响应中 提取cookie
+4. retrying 模块的使用
+
+    使用超时参数能够加快我们整体的请求速度，但是在正常的网页浏览过程中，如果发生速度很慢的情况，我们会做的选择是刷新页面，那么在代码中，我们是否也可以刷新请求呢？对应的，retrying 模块就可以帮助我们解决。
+
+4.1 retrying 模块的使用
+
+    retrying 模块的地址：https://pypi.org/project/retrying/
+
+    retrying 模块安装方法：pip install retrying
+
+    retrying 模块的使用：
+
+使用 retrying 模块提供的 retry模块。
+
+    通过装饰器的方式使用，让被装饰的函数反复执行。
+
+    retry中可以传入参数 stop_max_attempt_number，让函数报错后继续重新执行，达到最大执行次数的上限。如果每次都报错，整个函数报错；如果中间有一个成功，程序继续往后执行。
+
+4.2 retrying 和 requests 的简单封装
+
+    实现一个发送请求的函数，每次爬虫中直接调用该函数即可实现发送请求，在其中：
+
+    使用 timeout实现超时报错。
+
+    使用 retrying 模块实现重试。
+
+        
+
+
+
