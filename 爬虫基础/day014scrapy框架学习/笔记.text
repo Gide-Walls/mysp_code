@@ -1,0 +1,50 @@
+解释器
+    python    毛坯 30兆     没有第三方库   pip下载
+    miniconda 硬装100兆     管理环境的    有一些第三方库
+    anconda   精装 一两个G   有非常多的第三方库
+编辑
+    pycharm
+    vscode
+虚拟环境
+    项目1 用python3.9   selenium 3.2的版本
+    项目2 用python3.10  selenium 4.0的版本
+
+
+    python 创建虚拟环境非常麻烦
+
+    miniconda 可以管理虚拟环境
+
+    分离不同项目的第三方库  隔离开发环境
+写代码
+    高内聚 低耦合
+
+scrapy 创建项目
+    scrapy startproject 项目名
+    文件夹
+        cfg
+            配置文件    指定配置文件地址
+            部署项目 配置
+        项目同名目录
+            spiders 主文件夹
+                里面是你的爬虫文件
+            itme
+                对网址需要采集的内容  设置一个头
+
+            middlewares
+                自定义中间件
+            pipelines
+                管道文件 保存数据的地方
+            settings
+                配置文件    项目的配置文件
+
+        scrapy genspider aouban movie.douban.com
+            启动爬虫 scrapy crawl douban
+
+        在 settings文件中国 注释君子协议
+        添加请求头
+
+
+            所有的管道  中间件 必须在配置文件进行开启
+
+
+
