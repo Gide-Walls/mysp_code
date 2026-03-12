@@ -1,10 +1,91 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可拖动方框</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .box {
+            width: 100px;
+            height: 100px;
+            position: absolute;
+            border: 2px solid #000;
+            cursor: move;
+        }
+
+        #red-box {
+            background-color: rgba(255, 0, 0, 0.7);
+            left: 100px;
+            top: 100px;
+        }
+
+        #green-box {
+            background-color: rgba(0, 128, 0, 0.7);
+            left: 300px;
+            top: 150px;
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div id="red-box" class="box"></div>
+    <div id="green-box" class="box"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const redBox = document.getElementById('red-box');
+            const greenBox = document.getElementById('green-box');
+
+            // 通用拖拽函数
+            function makeDraggable(element) {
+                let isDragging = false;
+                let offsetX, offsetY;
+
+                // 鼠标按下
+                element.addEventListener('mousedown', function(e) {
+                    isDragging = true;
+
+                    // 计算鼠标相对于元素左上角的偏移
+                    const rect = element.getBoundingClientRect();
+                    offsetX = e.clientX - rect.left;
+                    offsetY = e.clientY - rect.top;
+
+                    // 提升被拖拽元素的层级
+                    element.style.zIndex = '1000';
+                });
+
+                // 鼠标移动
+                document.addEventListener('mousemove', function(e) {
+                    if (isDragging) {
+                        // 计算新位置
+                        const newX = e.clientX - offsetX;
+                        const newY = e.clientY - offsetY;
+
+                        // 应用新位置
+                        element.style.left = newX + 'px';
+                        element.style.top = newY + 'px';
+                    }
+                });
+
+                // 鼠标释放
+                document.addEventListener('mouseup', function() {
+                    isDragging = false;
+                    // 恢复层级
+                    element.style.zIndex = '1';
+                });
+            }
+
+            // 使两个方框都可拖拽
+            makeDraggable(redBox);
+            makeDraggable(greenBox);
+        });
+    </script>
 </body>
 </html>

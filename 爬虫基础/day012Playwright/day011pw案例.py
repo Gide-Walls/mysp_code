@@ -1,27 +1,42 @@
-import sys
-import os
-import ssl
-import urllib.request
-import sqlite3
-import venv
+from playwright.sync_api import sync_playwright
+import time
+import pymongo
+class kaoyan:
+    def __init__(self):
+        self.mongo = pymongo.MongoClient('localhost', 27017)["kaoyan"]["data"]
+        self.url = f"https://www.handebook.com/web/#/13363451598/document"
+    def jiexi(self, page):
+        time.sleep(5)
+        element = page.locator('xpath=//div[@class="school-list"]')
+        print(element)
+        data_list = element.locator('xpath=.//div[@class="content-document"]').all()
+        data_list_serve = []
+        for data in data_list:
+            dict_data = {"名字": data.locator('xpath=./span[1]').text_content(),
+                         "价格": data.locator('xpath=./span[2]').text_content()}
+            data_list_serve.append(dict_data)
+        try:
+            self.mongo.insert_many(data_list_serve)
+        except Exception as e:
+            print(e)
+            print("插入失败")
+        print(data_list_serve)
 
-print(f"Python 版本: {sys.version}")
-print(f"Python 可执行文件路径: {sys.executable}")
-print(f"SSL 模块信息: {ssl.OPENSSL_VERSION}")
-print("\n正在测试核心库导入...")
-try:
-    # 测试网络相关库（与下载包相关）
-    response = urllib.request.urlopen('https://www.baidu.com', timeout=5)
-    print("✓ urllib.request 模块正常，网络连接测试通过。")
-except Exception as e:
-    print(f"✗ 网络连接测试异常: {e}")
+    def request_url(self):
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=False)
+            page = browser.new_page()
+            page.goto(self.url)
+            for i in range(10):
+                self.jiexi(page)
 
-try:
-    # 测试数据库库（许多工具依赖）
-    conn = sqlite3.connect(':memory:')
-    conn.close()
-    print("✓ sqlite3 模块正常。")
-except Exception as e:
-    print(f"✗ sqlite3 模块异常: {e}")
-
-print("核心库检查完成。")
+                time.sleep(2)
+                page_texy = page.locator('xpath=//button[@class="btn-next"]')
+                if page_texy.count() == 0:
+                    print("已经是最后一页了")
+                    break
+                page_texy.click()
+                page.wait_for_timeout(3000)
+if __name__ == '__main__':
+    aaa = kaoyan()
+    aaa.request_url()

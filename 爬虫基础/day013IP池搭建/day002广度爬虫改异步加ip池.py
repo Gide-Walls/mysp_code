@@ -5,6 +5,8 @@ from lxml import etree
 from fake_useragent import UserAgent
 import asyncio
 from aiohttp import ClientSession
+
+
 class Spider:
     def __init__(self):
         self.url = 'https://qq.ip138.com/train/'
@@ -52,35 +54,64 @@ class Spider:
     # 主页请求
     async def requests_get(self):
         """发送请求"""
-        res = await self.session.get(self.url)
-        res.encoding = 'utf-8'
-        return await res.text()
+        for i in range(3):
+            try:
+                res = await self.session.get(self.url)
+                if res.status == 200:
+                    res.encoding = 'utf-8'
+                    return await res.text()
+                else:
+                    print(f"请求{self.url}出错")
+            except Exception as e:
+                print(f"异常{e}第一层正在重试")
+            await asyncio.sleep(1)
+        return None
 
     # 第二层 链接发送请求
     async def requests_province(self, url):
         # 省份链接请求
-        res = await self.session.get(url)
-        res.encoding = 'utf-8'
-        return await res.text()
+        for i in range(3):
+            try:
+
+                res = await self.session.get(url)
+                if res.status == 200:
+                    res.encoding = 'utf-8'
+                    return await res.text()
+                else:
+                    print(f"url{url}请求发生异常")
+            except Exception as e:
+                print(f"{e}第二层出现异常正在重试")
+            await asyncio.sleep(1)
+        return None
 
     # 第三次请求 结果并筛选打印
     async def train(self, url):
+        # await asyncio.sleep(6)
         async with self.semaphore:
-            await asyncio.sleep(5)
-            res = await self.session.get(url)
-            res.encoding = 'utf-8'
-            html_text = await res.text()
-            html = etree.HTML(html_text)
-            tr = html.xpath('//tbody/tr')
-            car_data = []
-            for tr in tr:
-                car = tr.xpath('./td[2]/text()')
-                start = tr.xpath('./td[3]/a/text()')
-                start_time = tr.xpath('./td[4]/text()')
-                car_data.append({"车次": car,
-                                 "始发地": start,
-                                 "发车时间": start_time})
-            print(car_data)
+            for i in range(3):
+                try:
+                    res = await self.session.get(url)
+                    if res.status == 200:
+                        res.encoding = 'utf-8'
+                        html_text = await res.text()
+                        html = etree.HTML(html_text)
+                        tr = html.xpath('//tbody/tr')
+                        car_data = []
+                        for tr in tr:
+                            car = tr.xpath('./td[2]/text()')
+                            start = tr.xpath('./td[3]/a/text()')
+                            start_time = tr.xpath('./td[4]/text()')
+                            car_data.append({"车次": car,
+                                             "始发地": start,
+                                             "发车时间": start_time})
+                        print(car_data,flush=True)
+                        break
+                    else:
+                        print(f"请求{url}出现异常")
+                except Exception as e:
+                    print(f"{e}出现异常正在重试")
+                await asyncio.sleep(1)
+            return None
 
     # 第二层各个火车站解析出url 进行请求(用train)并打印出来
     async def tow_analysis(self, data):
@@ -98,25 +129,31 @@ class Spider:
                     'href': href_data,
                     # 'station': station,
                 })
-                await asyncio.sleep(1)
+                # await asyncio.sleep(1)
 
             station_list.append({abc: station_dict_list})
             stations = station_dict_list
             batch_size = 2
-        # async with self.semaphore:
+            # async with self.semaphore:
             for i in range(0, len(stations), batch_size):
                 # async with self.semaphore:
                 batch_stations = stations[i:i + batch_size]
                 tasks = []
+
                 for station in batch_stations:
-                    task = self.train(station["href"])
+                    task = asyncio.create_task(self.train(station['href']))
                     tasks.append(task)
+
+
                 results = await asyncio.gather(*tasks)
-                for result in results:
-                    print(result)
+                await asyncio.sleep(10)
+
+                # for result in results:
+                #     print(result)
 
     async def analysis(self, res):
         # 主页转成html
+
         html = etree.HTML(res)
         # 地区标签
         dl = html.xpath('//dl')
@@ -134,17 +171,24 @@ class Spider:
                 link_url = "https://qq.ip138.com" + link
                 dict_pro.append({'省份': pro, '链接': link_url})
                 res = await self.requests_province(link_url)
+                if res is None:
+                    print("第二层出现问题")
+                    return
                 await self.tow_analysis(res)  # 解析各个省份的 里面的城市
-                await asyncio.sleep(1)
+                # await asyncio.sleep(1)
             dict_data.append({region_list: dict_pro})
         return dict_data
 
     async def main(self):
         await self.init_session()
         res = await self.requests_get()  # 获取主页的各个地区的url  省份的
-        await self.analysis(res)
-        # self.station_url(data)
-        # print(data)
+        if res is not None:
+            await self.analysis(res)
+            # self.station_url(data)
+            # print(data)
+        else:
+            print("ip有问题主页未获取成功")
+
 
 if __name__ == "__main__":
     aaa = Spider()

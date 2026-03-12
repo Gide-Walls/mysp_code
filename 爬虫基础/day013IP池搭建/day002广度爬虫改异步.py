@@ -1,10 +1,10 @@
+import aiohttp
 import requests
 import time
 from lxml import etree
 from fake_useragent import UserAgent
 import asyncio
-
-
+from aiohttp import ClientSession
 class Spider:
     def __init__(self):
         self.url = 'https://qq.ip138.com/train/'
@@ -37,43 +37,53 @@ class Spider:
             'Hm_lpvt_ecdd6f3afaa488ece3938bcdbb89e8da': '1772708509',
             'Hm_lpvt_e3699341295209ce778322a870fa2bab': '1772717534',
         }
-        self.session = requests.Session()
-        self.session.cookies.update(self.cookies)
+        self.session = None
+        self.semaphore = asyncio.Semaphore(2)
+
         self.q = asyncio.Queue()
 
+    async def init_session(self):
+        # 先创建 ClientSession 实例，再赋值给 self.session
+        self.session = aiohttp.ClientSession(
+            headers=self.headers,
+            cookies=self.cookies
+        )
+
     # 主页请求
-    def requests_get(self):
+    async def requests_get(self):
         """发送请求"""
-        res = self.session.get(self.url, headers=self.headers)
+        res = await self.session.get(self.url)
         res.encoding = 'utf-8'
-        return res.text
+        return await res.text()
 
     # 第二层 链接发送请求
-    def requests_province(self, url):
+    async def requests_province(self, url):
         # 省份链接请求
-        res = self.session.get(url, headers=self.headers)
+        res = await self.session.get(url)
         res.encoding = 'utf-8'
-        return res.text
+        return await res.text()
 
-    # 获取车次加xpath解析
-    def train(self, url):
-        time.sleep(2)
-        res = self.session.get(url, headers=self.headers)
-        res.encoding = 'utf-8'
-        html = etree.HTML(res.text)
-        tr = html.xpath('//tbody/tr')
-        car_data = []
-        for tr in tr:
-            car = tr.xpath('./td[2]/text()')
-            start = tr.xpath('./td[3]/a/text()')
-            start_time = tr.xpath('./td[4]/text()')
-            car_data.append({"车次": car,
-                             "始发地": start,
-                             "发车时间": start_time})
-        print(car_data)
+    # 第三次请求 结果并筛选打印
+    async def train(self, url):
+        async with self.semaphore:
+            await asyncio.sleep(5)
+            res = await self.session.get(url)
+            res.encoding = 'utf-8'
+            html_text = await res.text()
+            html = etree.HTML(html_text)
+            tr = html.xpath('//tbody/tr')
+            car_data = []
+            for tr in tr:
+                car = tr.xpath('./td[2]/text()')
+                start = tr.xpath('./td[3]/a/text()')
+                start_time = tr.xpath('./td[4]/text()')
+                car_data.append({"车次": car,
+                                 "始发地": start,
+                                 "发车时间": start_time})
+            print(car_data)
 
     # 第二层各个火车站解析出url 进行请求(用train)并打印出来
-    def tow_analysis(self, data):
+    async def tow_analysis(self, data):
         html = etree.HTML(data)
         div_box = html.xpath('//div[@class="box"]')
         station_list = []
@@ -85,16 +95,27 @@ class Spider:
                 href_data = "https://qq.ip138.com/" + href.xpath('./@href')[0]
                 station = href.xpath('./text()')[0]
                 station_dict_list.append({
-                    'href': href_data[0],
-                    'station': station,
+                    'href': href_data,
+                    # 'station': station,
                 })
-                time.sleep(2)
-                self.train(href_data)
-            station_list.append({abc: station_dict_list})
-        print(station_list)
+                await asyncio.sleep(1)
 
-    # 获取第二层的各个省份+ 链接 调用了tow_analysis函数 去解析出url
-    def analysis(self, res):
+            station_list.append({abc: station_dict_list})
+            stations = station_dict_list
+            batch_size = 2
+        # async with self.semaphore:
+            for i in range(0, len(stations), batch_size):
+                # async with self.semaphore:
+                batch_stations = stations[i:i + batch_size]
+                tasks = []
+                for station in batch_stations:
+                    task = self.train(station["href"])
+                    tasks.append(task)
+                results = await asyncio.gather(*tasks)
+                # for result in results:
+                #     print(result)
+
+    async def analysis(self, res):
         # 主页转成html
         html = etree.HTML(res)
         # 地区标签
@@ -112,30 +133,19 @@ class Spider:
                 pro = province.xpath('./a/text()')[0]
                 link_url = "https://qq.ip138.com" + link
                 dict_pro.append({'省份': pro, '链接': link_url})
-                res = self.requests_province(link_url)
-                self.tow_analysis(res)  # 解析各个省份的 里面的城市
-                time.sleep(5)
+                res = await self.requests_province(link_url)
+                await self.tow_analysis(res)  # 解析各个省份的 里面的城市
+                await asyncio.sleep(1)
             dict_data.append({region_list: dict_pro})
         return dict_data
 
-    # 获取各个省份链接
-    # def station_url(self, dict_data):
-    #     for region in dict_data:
-    #
-    #         for key, value in region.items():
-    #
-    #             print(key)  # key是地区
-    #             for province in value:
-    #                 province_name = province["省份"]
-    #                 province_url = province["链接"]
-    #                 print(province_name, province_url)
-
-    def main(self):
-        res = self.requests_get()  # 获取主页的各个地区的url  省份的
-        self.analysis(res)
+    async def main(self):
+        await self.init_session()
+        res = await self.requests_get()  # 获取主页的各个地区的url  省份的
+        await self.analysis(res)
         # self.station_url(data)
         # print(data)
 
-
-spider = Spider()
-spider.main()
+if __name__ == "__main__":
+    aaa = Spider()
+    asyncio.run(aaa.main())

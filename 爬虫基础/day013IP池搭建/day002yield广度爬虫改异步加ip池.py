@@ -1,5 +1,4 @@
 import aiohttp
-import requests
 import time
 from lxml import etree
 from fake_useragent import UserAgent
@@ -11,9 +10,6 @@ class Spider:
     def __init__(self):
         self.url = 'https://qq.ip138.com/train/'
         self.ua = UserAgent()
-        self.random = self.ua.random
-        # self.proxy = {"http": "101.37.27.102:80",
-        #               "https": "01.37.27.102:80"}
         self.headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
             'Accept-Language': 'zh-CN,zh;q=0.9',
@@ -30,7 +26,6 @@ class Spider:
             'sec-ch-ua': '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
-            # 'Cookie': 'Hm_lvt_ecdd6f3afaa488ece3938bcdbb89e8da=1772708440; HMACCOUNT=D83BF4CCC382C9ED; Hm_lvt_e3699341295209ce778322a870fa2bab=1772708470; Hm_lpvt_ecdd6f3afaa488ece3938bcdbb89e8da=1772708509; Hm_lpvt_e3699341295209ce778322a870fa2bab=1772717534',
         }
         self.cookies = {
             'Hm_lvt_ecdd6f3afaa488ece3938bcdbb89e8da': '1772708440',
@@ -40,156 +35,129 @@ class Spider:
             'Hm_lpvt_e3699341295209ce778322a870fa2bab': '1772717534',
         }
         self.session = None
-        self.semaphore = asyncio.Semaphore(2)
-
-        self.q = asyncio.Queue()
+        self.semaphore = asyncio.Semaphore(2)  # 控制并发数
 
     async def init_session(self):
-        # 先创建 ClientSession 实例，再赋值给 self.session
+        """初始化异步session"""
         self.session = aiohttp.ClientSession(
             headers=self.headers,
             cookies=self.cookies
         )
 
-    # 主页请求
-    async def requests_get(self):
-        """发送请求"""
+    async def fetch(self, url, layer="未知层"):
+        """通用请求函数（替代原来的三层请求函数）"""
         for i in range(3):
             try:
-                res = await self.session.get(self.url)
-                if res.status == 200:
-                    res.encoding = 'utf-8'
-                    return await res.text()
-                else:
-                    print(f"请求{self.url}出错")
-            except Exception as e:
-                print(f"异常{e}第一层正在重试")
-            await asyncio.sleep(1)
-        return None
-
-    # 第二层 链接发送请求
-    async def requests_province(self, url):
-        # 省份链接请求
-        for i in range(3):
-            try:
-
-                res = await self.session.get(url)
-                if res.status == 200:
-                    res.encoding = 'utf-8'
-                    return await res.text()
-                else:
-                    print(f"url{url}请求发生异常")
-            except Exception as e:
-                print(f"{e}第二层出现异常正在重试")
-            await asyncio.sleep(1)
-        return None
-
-    # 第三次请求 结果并筛选打印
-    async def train(self, url):
-        # await asyncio.sleep(6)
-        async with self.semaphore:
-            for i in range(3):
-                try:
+                async with self.semaphore:
                     res = await self.session.get(url)
                     if res.status == 200:
                         res.encoding = 'utf-8'
-                        html_text = await res.text()
-                        html = etree.HTML(html_text)
-                        tr = html.xpath('//tbody/tr')
-                        car_data = []
-                        for tr in tr:
-                            car = tr.xpath('./td[2]/text()')
-                            start = tr.xpath('./td[3]/a/text()')
-                            start_time = tr.xpath('./td[4]/text()')
-                            car_data.append({"车次": car,
-                                             "始发地": start,
-                                             "发车时间": start_time})
-                        print(car_data,flush=True)
-                        break
+                        return await res.text()
                     else:
-                        print(f"请求{url}出现异常")
-                except Exception as e:
-                    print(f"{e}出现异常正在重试")
-                await asyncio.sleep(1)
-            return None
+                        print(f"【{layer}】请求{url}失败，状态码：{res.status}")
+            except Exception as e:
+                print(f"【{layer}】{url} 请求异常：{e}，重试第{i + 1}次")
+            await asyncio.sleep(1)
+        return None
 
-    # 第二层各个火车站解析出url 进行请求(用train)并打印出来
-    async def tow_analysis(self, data):
-        html = etree.HTML(data)
+    def parse_home(self, html_text):
+        """解析主页，yield 出所有省份URL（生成器）"""
+        html = etree.HTML(html_text)
+        dl_list = html.xpath('//dl')
+        for dl in dl_list:
+            region = dl.xpath('./dt/text()')[0]
+            province_dd = dl.xpath('./dd')
+            for dd in province_dd:
+                pro_name = dd.xpath('./a/text()')[0]
+                pro_url = "https://qq.ip138.com" + dd.xpath('./a/@href')[0]
+                # 用yield吐出，不存列表
+                yield {
+                    "地区": region,
+                    "省份": pro_name,
+                    "省份URL": pro_url
+                }
+
+    def parse_province(self, html_text):
+        """解析省份页，yield 出所有火车站URL（生成器）"""
+        html = etree.HTML(html_text)
         div_box = html.xpath('//div[@class="box"]')
-        station_list = []
         for div in div_box:
-            abc = div.xpath('.//span/text()')[0]  # 获取汉字拼音开头
-            href_list = div.xpath('.//li/a')  # 获取链接列表
-            station_dict_list = []
+            abc = div.xpath('.//span/text()')[0]
+            href_list = div.xpath('.//li/a')
             for href in href_list:
-                href_data = "https://qq.ip138.com/" + href.xpath('./@href')[0]
-                station = href.xpath('./text()')[0]
-                station_dict_list.append({
-                    'href': href_data,
-                    # 'station': station,
-                })
-                # await asyncio.sleep(1)
+                station_url = "https://qq.ip138.com/" + href.xpath('./@href')[0]
+                station_name = href.xpath('./text()')[0]
+                # 用yield吐出，不存列表
+                yield {
+                    "拼音前缀": abc,
+                    "车站名": station_name,
+                    "车站URL": station_url
+                }
 
-            station_list.append({abc: station_dict_list})
-            stations = station_dict_list
-            batch_size = 2
-            # async with self.semaphore:
-            for i in range(0, len(stations), batch_size):
-                # async with self.semaphore:
-                batch_stations = stations[i:i + batch_size]
-                tasks = []
+    def parse_station(self, html_text):
+        """解析车站页，yield 出车次数据（生成器）"""
+        html = etree.HTML(html_text)
+        tr_list = html.xpath('//tbody/tr')
+        for tr in tr_list:
+            car_num = tr.xpath('./td[2]/text()')
+            start_station = tr.xpath('./td[3]/a/text()')
+            start_time = tr.xpath('./td[4]/text()')
+            # 用yield吐出每条车次数据
+            yield {
+                "车次": car_num[0] if car_num else "",
+                "始发地": start_station[0] if start_station else "",
+                "发车时间": start_time[0] if start_time else ""
+            }
 
-                for station in batch_stations:
-                    task = asyncio.create_task(self.train(station['href']))
-                    tasks.append(task)
+    async def crawl(self):
+        """核心爬取逻辑（串联所有生成器）"""
+        # 1. 爬主页
+        home_html = await self.fetch(self.url, "主页")
+        if not home_html:
+            print("主页爬取失败，终止任务")
+            return
 
+        # 2. 遍历主页生成器（省份URL）
+        for pro_data in self.parse_home(home_html):
+            print(f"\n开始爬取：{pro_data['地区']}-{pro_data['省份']}")
+            # 3. 爬省份页
+            pro_html = await self.fetch(pro_data["省份URL"], f"{pro_data['省份']}")
+            if not pro_html:
+                print(f"{pro_data['省份']} 爬取失败，跳过")
+                continue
 
-                results = await asyncio.gather(*tasks)
-                await asyncio.sleep(10)
+            # 4. 遍历省份页生成器（火车站URL）
+            for station_data in self.parse_province(pro_html):
+                # 5. 爬车站页
+                station_html = await self.fetch(station_data["车站URL"], f"{station_data['车站名']}")
+                if not station_html:
+                    print(f"{station_data['车站名']} 爬取失败，跳过")
+                    continue
 
-                # for result in results:
-                #     print(result)
-
-    async def analysis(self, res):
-        # 主页转成html
-
-        html = etree.HTML(res)
-        # 地区标签
-        dl = html.xpath('//dl')
-        dict_data = []
-        for tr in dl:
-            # 地区
-            region_list = tr.xpath('./dt/text()')[0]
-            # 省份list
-            province_list = tr.xpath('./dd')
-            dict_pro = []
-            # 获取省份 加 链接
-            for province in province_list:
-                link = province.xpath('./a/@href')[0]
-                pro = province.xpath('./a/text()')[0]
-                link_url = "https://qq.ip138.com" + link
-                dict_pro.append({'省份': pro, '链接': link_url})
-                res = await self.requests_province(link_url)
-                if res is None:
-                    print("第二层出现问题")
-                    return
-                await self.tow_analysis(res)  # 解析各个省份的 里面的城市
-                # await asyncio.sleep(1)
-            dict_data.append({region_list: dict_pro})
-        return dict_data
+                # 6. 遍历车站页生成器（车次数据）
+                for train_data in self.parse_station(station_html):
+                    # 最终的车次数据，统一yield出来
+                    yield {
+                        "省份": pro_data["省份"],
+                        "车站": station_data["车站名"],
+                        **train_data  # 合并车次数据
+                    }
+            await asyncio.sleep(2)  # 省份间加个延迟，避免被封
 
     async def main(self):
+        """主函数"""
         await self.init_session()
-        res = await self.requests_get()  # 获取主页的各个地区的url  省份的
-        if res is not None:
-            await self.analysis(res)
-            # self.station_url(data)
-            # print(data)
-        else:
-            print("ip有问题主页未获取成功")
+        # 遍历核心生成器，拿到所有车次数据
+        async for train_info in self.crawl():
+            # 这里可以统一处理数据（打印/存库/导出）
+            print(f"【最终数据】{train_info}", flush=True)
+
+        # 关闭session
+        await self.session.close()
 
 
 if __name__ == "__main__":
-    aaa = Spider()
-    asyncio.run(aaa.main())
+    start_time = time.time()
+    spider = Spider()
+    asyncio.run(spider.main())
+    print(f"\n总耗时：{time.time() - start_time:.2f}秒")
