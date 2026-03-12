@@ -9,4 +9,14 @@ import scrapy
 class HupuItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
-    pass
+    tid = scrapy.Field()
+    title = scrapy.Field()
+    content = scrapy.Field()
+    topicName = scrapy.Field()
+    pageNum = scrapy.Field()
+    detailUrl = scrapy.Field()
+
+
+class UncommentItem(scrapy.Item):
+    tid = scrapy.Field()
+    title = scrapy.Field()

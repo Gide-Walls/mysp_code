@@ -1,0 +1,29 @@
+items 文件
+    提前规划自己要获取的字段
+
+    约束自己的字段 进行报错
+
+
+    scrapl shell 测试xpath语法是否正确
+
+
+
+    scrapy 信号
+
+        可以判断爬虫名字进行 多项目
+
+    scrapy 管道
+        类里面有三个方法
+        process_itme(self,time,spider)
+        open_spider(self,spider)
+        close_spider(self,spoder)
+    多个爬虫项目 可以 通过爬虫名称 进行区分
+
+
+    一个爬虫可以存多个管代的时候  储存数据之后需要再次返回item
+
+
+    管道写好之后需要做配置文件开启
+
+
+
